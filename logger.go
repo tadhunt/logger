@@ -11,8 +11,6 @@ import (
 	"reflect"
 )
 
-var Log = log.New(LogWriter{}, "", 0)
-
 type LogWriter struct{}
 
 func (f LogWriter) Write(p []byte) (n int, err error) {
@@ -63,4 +61,8 @@ func Caller() string {
 	frame, _ := frames.Next()
 
 	return fmt.Sprintf("%s:%d %s", frame.File, frame.Line, frame.Function)
+}
+
+func New() *log.Logger {
+	return log.New(LogWriter{}, "", 0)
 }
