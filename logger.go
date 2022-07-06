@@ -33,6 +33,15 @@ func (f LogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func (f LogWriter) Debugf(format string, args ...interface{}) {
+	s := fmt.Sprintf(format, args...)
+
+	var buf []byte
+	buf = append(buf, "DEBUG: "...)
+	buf = append(buf, s...)
+	f.Write(buf)
+}
+
 func FuncInfo(f interface{}) string {
 	fn := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
 
