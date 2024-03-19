@@ -33,6 +33,31 @@ func Format(format string, args ...any) string {
 	return fmt.Sprintf(prefix+format, a...)
 }
 
+func FormatDepth(depth int, format string, args ...any) string {
+	pc, file, line, ok := runtime.Caller(depth)
+	if !ok {
+		file = "?"
+		line = 0
+	}
+
+	fn := runtime.FuncForPC(pc)
+	var fnName string
+	if fn == nil {
+		fnName = "?()"
+	} else {
+		dotName := filepath.Ext(fn.Name())
+		fnName = strings.TrimLeft(dotName, ".") + "()"
+	}
+
+	prefix := "%s:%d %s: "
+
+	a := make([]any, 0)
+	a = append(a, filepath.Base(file), line, fnName)
+	a = append(a, args...)
+
+	return fmt.Sprintf(prefix+format, a...)
+}
+
 func FuncInfo(f interface{}) string {
 	fn := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
 
