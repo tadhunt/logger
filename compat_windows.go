@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build windows
 
 package logger
 
@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"log/syslog"
 	"os"
 	"strings"
 	"sync"
@@ -17,7 +16,6 @@ import (
 type compatLogWriter struct {
 	id     int
 	logger *log.Logger
-	syslog *syslog.Writer
 	prefix string
 	level  LogLevel
 
@@ -34,7 +32,6 @@ func NewCompatLogWriter(level LogLevel) CompatLogWriter {
 	log := &compatLogWriter{
 		id:     Registry.NewId(),
 		logger: log.New(os.Stderr, "", log.Ltime | log.Lmicroseconds),
-		syslog: nil,
 		prefix: "",
 		level:  level,
 
@@ -50,19 +47,9 @@ func NewCompatLogWriter(level LogLevel) CompatLogWriter {
 }
 
 func (lw *compatLogWriter) Syslog(enabled bool) error {
-	if !enabled {
-		lw.syslog = nil
-
-		return nil
+	if enabled {
+		return fmt.Errorf("windows does not support syslog")
 	}
-
-	slog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_LOCAL0, "mcs")
-	if err != nil {
-		return err
-	}
-
-	lw.syslog = slog
-
 	return nil
 }
 
@@ -93,9 +80,6 @@ func (lw *compatLogWriter) Packetf(format string, args ...any) {
 	s := "[PACKET] " + Format(format, args...)
 
 	lw.logger.Printf("%s", s)
-	if lw.syslog != nil {
-		lw.syslog.Debug(lw.prefix + s)
-	}
 }
 
 func (lw *compatLogWriter) Debugf(format string, args ...any) {
@@ -106,9 +90,6 @@ func (lw *compatLogWriter) Debugf(format string, args ...any) {
 	s := "[DEBUG] " + Format(format, args...)
 
 	lw.logger.Printf("%s", s)
-	if lw.syslog != nil {
-		lw.syslog.Debug(lw.prefix + s)
-	}
 }
 
 func (lw *compatLogWriter) Infof(format string, args ...any) {
@@ -119,9 +100,6 @@ func (lw *compatLogWriter) Infof(format string, args ...any) {
 	s := "[INFO] " + Format(format, args...)
 
 	lw.logger.Printf("%s", s)
-	if lw.syslog != nil {
-		lw.syslog.Info(lw.prefix + s)
-	}
 }
 
 func (lw *compatLogWriter) Warnf(format string, args ...any) {
@@ -132,9 +110,6 @@ func (lw *compatLogWriter) Warnf(format string, args ...any) {
 	s := "[WARN] " + Format(format, args...)
 
 	lw.logger.Printf("%s", s)
-	if lw.syslog != nil {
-		lw.syslog.Warning(lw.prefix + s)
-	}
 }
 
 func (lw *compatLogWriter) Errorf(f string, args ...any) {
@@ -145,17 +120,11 @@ func (lw *compatLogWriter) Errorf(f string, args ...any) {
 	s := "[ERROR] " + Format(f, args...)
 
 	lw.logger.Printf("%s", s)
-	if lw.syslog != nil {
-		lw.syslog.Err(lw.prefix + s)
-	}
 }
 
 func (lw *compatLogWriter) Fatalf(format string, args ...any) {
 	s := "[FATAL] " + Format(format, args...)
 
-	if lw.syslog != nil {
-		lw.syslog.Crit(lw.prefix + s)
-	}
 	lw.logger.Fatalf("%s", s)
 }
 
@@ -191,9 +160,6 @@ func (lw *compatLogWriter) scan(prefix string) {
 
 		s := prefix + " " + string(text)
 		lw.logger.Printf("%s", s)
-		if lw.syslog != nil {
-			lw.syslog.Info(s)
-		}
 		lw.scount++
 	}
 }
@@ -227,9 +193,6 @@ func (lw *compatLogWriter) Json(label string, data any, indent bool) {
 	if err != nil {
 		s := Format("[JSON-ERR] marshal: %v", err)
 		lw.logger.Printf("%s", s)
-		if lw.syslog != nil {
-			lw.syslog.Err(s)
-		}
 		return
 	}
 
@@ -239,9 +202,6 @@ func (lw *compatLogWriter) Json(label string, data any, indent bool) {
 	for _, line := range lines {
 		s := Format("[JSON] %s", line)
 		lw.logger.Printf("%s", s)
-		if lw.syslog != nil {
-			lw.syslog.Info(s)
-		}
 	}
 }
 
